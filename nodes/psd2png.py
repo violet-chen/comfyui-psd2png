@@ -22,14 +22,18 @@ class Psd2PngNode:
     RETURN_TYPES= ("IMAGE","MASK",)
 
     FUNCTION = "psd2png"
+    CATEGORY = "image"
 
     def psd2png(self,image):
         if image.endswith(".psd"):
             psd_path = folder_paths.get_annotated_filepath(image)
+            i = Image.open(psd_path)
+            i = ImageOps.exif_transpose(i)
+            image = i.convert("RGB")
+            image = np.array(image).astype(np.float32) / 255.0
+            image = torch.from_numpy(image)[None,]
             psd_image= PSDImage.open(psd_path)
             layer_list=[layer for layer in psd_image.descendants() if isinstance(layer, Layer)]
-            png_out = None
-            mask_out = None
             if len(layer_list) > 0:
                 layer_number = len(layer_list) - 1
                 top_layer_image=layer_list[layer_number].compose()
@@ -40,12 +44,7 @@ class Psd2PngNode:
                 # 将 "遮罩” 层复制到这个新的空白画布上 
                 top_layer_bbox = top_layer.bbox
                 offset=(top_layer_bbox[0], top_layer_bbox[1])
-                canvas_image.paste(top_layer_image ,offset)
-                
-                image = canvas_image.convert("RGB")
-                image = np.array(image).astype(np.float32)/255.0
-                image = torch.from_numpy(image)[None,]
-                
+                canvas_image.paste(top_layer_image ,offset)             
                 if 'A' in canvas_image.getbands():
                     mask = np.array(canvas_image.getchannel('A')).astype(np.float32) / 255.0
                     mask = 1. - torch.from_numpy(mask)
@@ -64,6 +63,7 @@ class Psd2PngNode:
                 mask = 1. - torch.from_numpy(mask)
             else:
                 mask = torch.zeros((64,64), dtype=torch.float32, device="cpu")
+            mask_out = mask.unsqueeze(0)
 
         return(image,mask_out)
     

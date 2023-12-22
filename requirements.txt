@@ -1,1 +1,1 @@
-psd_tools
+psd_tools~=1.9.28

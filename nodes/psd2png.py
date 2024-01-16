@@ -14,10 +14,11 @@ class Psd2PngNode:
         for input_file in os.listdir(input_dir):
             if os.path.isfile(os.path.join(input_dir, input_file)):
                 img_files.append(input_file)
+                sorted_img_files = sorted(img_files)
         return{
             "required":{
-                "filename":(sorted(img_files),{"psd_upload": True})
-                },
+                "image": (sorted_img_files,),
+            },
         }
     
     RETURN_TYPES= ("IMAGE","IMAGE","IMAGE","MASK",)
@@ -47,17 +48,17 @@ class Psd2PngNode:
         mask_out = mask.unsqueeze(0)
         return image,mask_out
 
-    def psd2png(self,filename):
-        file_path = folder_paths.get_annotated_filepath(filename)
+    def psd2png(self,image):
+        file_path = folder_paths.get_annotated_filepath(image)
         i = Image.open(file_path)
         i = ImageOps.exif_transpose(i)
-        image = i.convert("RGB")
-        image = np.array(image).astype(np.float32) / 255.0
-        image = torch.from_numpy(image)[None,]
+        input_image = i.convert("RGB")
+        input_image = np.array(input_image).astype(np.float32) / 255.0
+        input_image = torch.from_numpy(input_image)[None,]
         top_image = None
         bottom_image = None
         mask_out = None
-        if filename.endswith(".psd"):  
+        if image.endswith(".psd"):  
             psd_image= PSDImage.open(file_path)
             layer_list=[layer for layer in psd_image.descendants() if isinstance(layer, Layer)]
             if len(layer_list) == 1:
@@ -77,12 +78,12 @@ class Psd2PngNode:
                 mask = torch.zeros((64,64), dtype=torch.float32, device="cpu")
             mask_out = mask.unsqueeze(0)
 
-        return(image,top_image,bottom_image,mask_out)
+        return(input_image,top_image,bottom_image,mask_out)
     
 NODE_CLASS_MAPPINGS  = {
-    "Psd2Png":Psd2PngNode
+    "Psd2Png":Psd2PngNode,
     }
 NODE_DISPLAY_NAME_MAPPINGS  = {
-    "Psd2Png":"Psd2Png"
+    "Psd2Png":"Psd2Png",
     }
 

@@ -10,14 +10,11 @@ class Psd2PngNode:
     @classmethod
     def INPUT_TYPES(cls):
         input_dir = folder_paths.get_input_directory()
-        img_files = []
-        for input_file in os.listdir(input_dir):
-            if os.path.isfile(os.path.join(input_dir, input_file)):
-                img_files.append(input_file)
-                sorted_img_files = sorted(img_files)
+        files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
         return{
             "required":{
-                "image": (sorted_img_files,),
+                "image": (sorted(files), {"image_upload": True}),
+                "layer_index": ("INT",{"default": 1,"step":1}),
             },
         }
     
@@ -37,21 +34,20 @@ class Psd2PngNode:
         layer_bbox = layer_obj.bbox
         offset = (layer_bbox[0],layer_bbox[1])
         canvas_image_obj.paste(layer_image,offset)
-        image = canvas_image_obj.convert("RGB")
-        image = np.array(image).astype(np.float32) / 255.0
-        image = torch.from_numpy(image)[None,]
+        image_out = canvas_image_obj.convert("RGBA")
+        image_out = np.array(image_out).astype(np.float32) / 255.0
+        image_out = torch.from_numpy(image_out)[None,]
         if 'A' in canvas_image_obj.getbands():
             mask = np.array(canvas_image_obj.getchannel('A')).astype(np.float32) / 255.0
             mask = 1. - torch.from_numpy(mask)
         else:
             mask = torch.zeros((64,64), dtype=torch.float32, device="cpu")
         mask_out = mask.unsqueeze(0)
-        return image,mask_out
+        return image_out,mask_out
 
-    def psd2png(self,image):
+    def psd2png(self,image,layer_index):
         file_path = folder_paths.get_annotated_filepath(image)
         i = Image.open(file_path)
-        i = ImageOps.exif_transpose(i)
         input_image = i.convert("RGB")
         input_image = np.array(input_image).astype(np.float32) / 255.0
         input_image = torch.from_numpy(input_image)[None,]
@@ -63,22 +59,26 @@ class Psd2PngNode:
             layer_list=[layer for layer in psd_image.descendants() if isinstance(layer, Layer)]
             if len(layer_list) == 1:
                 top_image,mask_out = bottom_image,mask_out = self.get_image_and_mask(psd_image,layer_list,0)
-                top_image = self.get_image_and_mask(psd_image,layer_list,0)[0]
                 bottom_image = top_image
-                mask_out = self.get_image_and_mask(psd_image,layer_list,0)[1]
+                image_out = top_image
             elif len(layer_list) > 1:
                 top_layer_number = len(layer_list) - 1
                 top_image,mask_out = self.get_image_and_mask(psd_image,layer_list,top_layer_number)
                 bottom_image = self.get_image_and_mask(psd_image,layer_list,0)[0]
+                if (layer_index-1) > top_layer_number:
+                    image_out = top_image
+                else:
+                    image_out,mask_out = self.get_image_and_mask(psd_image,layer_list,layer_index-1)
         else:
             if 'A' in i.getbands():
                 mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
                 mask = 1. - torch.from_numpy(mask)
             else:
                 mask = torch.zeros((64,64), dtype=torch.float32, device="cpu")
+            image_out = input_image
             mask_out = mask.unsqueeze(0)
 
-        return(input_image,top_image,bottom_image,mask_out)
+        return(image_out,top_image,bottom_image,mask_out)
     
 NODE_CLASS_MAPPINGS  = {
     "Psd2Png":Psd2PngNode,

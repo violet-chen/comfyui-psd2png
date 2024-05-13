@@ -14,7 +14,7 @@ class Psd2PngNode:
         return{
             "required":{
                 "image": (sorted(files), {"image_upload": True}),
-                "layer_index": ("INT",{"default": 1,"step":1}),
+                "layer_index": ("INT",{"default": 0,"min": 0,"max": 999,"step": 1}),
             },
         }
     
@@ -57,12 +57,17 @@ class Psd2PngNode:
         if image.endswith(".psd"):  
             psd_image= PSDImage.open(file_path)
             layer_list=[layer for layer in psd_image.descendants() if isinstance(layer, Layer)]
-            if len(layer_list) == 1:
+            top_layer_number = len(layer_list) - 1
+            if layer_index == 0:
+                image_out = input_image
+                mask_out = torch.zeros((64,64), dtype=torch.float32, device="cpu").unsqueeze(0)
+                top_image = self.get_image_and_mask(psd_image,layer_list,top_layer_number)[0]
+                bottom_image = self.get_image_and_mask(psd_image,layer_list,0)[0]
+            elif len(layer_list) == 1:
                 top_image,mask_out = bottom_image,mask_out = self.get_image_and_mask(psd_image,layer_list,0)
                 bottom_image = top_image
                 image_out = top_image
             elif len(layer_list) > 1:
-                top_layer_number = len(layer_list) - 1
                 top_image,mask_out = self.get_image_and_mask(psd_image,layer_list,top_layer_number)
                 bottom_image = self.get_image_and_mask(psd_image,layer_list,0)[0]
                 if (layer_index-1) > top_layer_number:

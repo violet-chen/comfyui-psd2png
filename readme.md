@@ -4,6 +4,7 @@
 pip install psd-tools
 ```
 此节点可以识别psd文件.
+当layer_index为0时,image输出psd的全图.
 psd文件中最上面的图层序号最大,最下面的图层序号为1.
 image输出layer_index对应的psd图层图像.
 top_image输出的是psd的最上面图层的图像(隐藏的也可以输出).

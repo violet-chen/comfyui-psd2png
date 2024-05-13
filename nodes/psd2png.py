@@ -18,8 +18,8 @@ class Psd2PngNode:
             },
         }
     
-    RETURN_TYPES= ("IMAGE","IMAGE","IMAGE","MASK",)
-    RETURN_NAMES = ("image","top_image","bottom_image","mask",)
+    RETURN_TYPES= ("IMAGE","IMAGE","IMAGE","MASK","FLOAT",)
+    RETURN_NAMES = ("image","top_image","bottom_image","mask","is_exist_layer",)
     FUNCTION = "psd2png"
     CATEGORY = "image"
 
@@ -54,6 +54,7 @@ class Psd2PngNode:
         top_image = None
         bottom_image = None
         mask_out = None
+        is_exist_layer = 1.0
         if image.endswith(".psd"):  
             psd_image= PSDImage.open(file_path)
             layer_list=[layer for layer in psd_image.descendants() if isinstance(layer, Layer)]
@@ -72,6 +73,7 @@ class Psd2PngNode:
                 bottom_image = self.get_image_and_mask(psd_image,layer_list,0)[0]
                 if (layer_index-1) > top_layer_number:
                     image_out = top_image
+                    is_exist_layer = 0.0
                 else:
                     image_out,mask_out = self.get_image_and_mask(psd_image,layer_list,layer_index-1)
         else:
@@ -83,7 +85,7 @@ class Psd2PngNode:
             image_out = input_image
             mask_out = mask.unsqueeze(0)
 
-        return(image_out,top_image,bottom_image,mask_out)
+        return(image_out,top_image,bottom_image,mask_out,is_exist_layer)
     
 NODE_CLASS_MAPPINGS  = {
     "Psd2Png":Psd2PngNode,

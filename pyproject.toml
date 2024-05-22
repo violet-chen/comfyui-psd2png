@@ -1,0 +1,15 @@
+[project]
+name = "comfyui-psd2png"
+description = "Nodes: Psd2Png."
+version = "1.0.0"
+license = "LICENSE"
+dependencies = ["psd_tools~=1.9.28"]
+
+[project.urls]
+Repository = "https://github.com/violet-chen/comfyui-psd2png"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "comfyui-psd2png"
+Icon = ""

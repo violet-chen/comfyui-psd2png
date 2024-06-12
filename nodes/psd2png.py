@@ -5,6 +5,8 @@ from psd_tools.api.layers import Layer
 from psd_tools import PSDImage
 import numpy as np
 import torch
+import hashlib
+from pathlib import Path
 
 class Psd2PngNode:
     @classmethod
@@ -14,6 +16,7 @@ class Psd2PngNode:
         return{
             "required":{
                 "image": (sorted(files), {"image_upload": True}),
+                "psd_path": ("STRING",{"default": "C:/example.psd"}),
                 "layer_index": ("INT",{"default": 0,"min": 0,"max": 999,"step": 1}),
             },
         }
@@ -45,8 +48,11 @@ class Psd2PngNode:
         mask_out = mask.unsqueeze(0)
         return image_out,mask_out
 
-    def psd2png(self,image,layer_index):
-        file_path = folder_paths.get_annotated_filepath(image)
+    def psd2png(self,image,psd_path,layer_index):
+        if psd_path == "C:/example.psd":
+            file_path = Path(folder_paths.get_annotated_filepath(image))
+        else:
+            file_path = Path(psd_path)
         i = Image.open(file_path)
         input_image = i.convert("RGB")
         input_image = np.array(input_image).astype(np.float32) / 255.0
@@ -55,7 +61,7 @@ class Psd2PngNode:
         bottom_image = None
         mask_out = None
         is_exist_layer = 1.0
-        if image.endswith(".psd"):  
+        if file_path.suffix == ".psd":  
             psd_image= PSDImage.open(file_path)
             layer_list=[layer for layer in psd_image.descendants() if isinstance(layer, Layer)]
             top_layer_number = len(layer_list) - 1
@@ -86,6 +92,17 @@ class Psd2PngNode:
             mask_out = mask.unsqueeze(0)
 
         return(image_out,top_image,bottom_image,mask_out,is_exist_layer)
+    
+    @classmethod
+    def IS_CHANGED(s, image,psd_path,layer_index):
+        if psd_path == "C:/example.psd":
+            file_path = Path(folder_paths.get_annotated_filepath(image))
+        else:
+            file_path = Path(psd_path)
+        m = hashlib.sha256()
+        with open(file_path, 'rb') as f:
+            m.update(f.read())
+        return m.digest().hex()
     
 NODE_CLASS_MAPPINGS  = {
     "Psd2Png":Psd2PngNode,

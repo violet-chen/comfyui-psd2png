@@ -10,6 +10,6 @@ Repository = "https://github.com/violet-chen/comfyui-psd2png"
 #  Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "71e95c52-3653-4fd3-a3fb-f79a4a7ba52e"
 DisplayName = "comfyui-psd2png"
 Icon = ""

@@ -103,11 +103,36 @@ class Psd2PngNode:
         with open(file_path, 'rb') as f:
             m.update(f.read())
         return m.digest().hex()
+
+class StringInsertNode:
+    @classmethod
+    def INPUT_TYPES(cls):
+        return{
+            "required":{
+                "string": ("STRING",{"default": "a,b,c"}),
+                "find_string":("STRING",{"default": ","}),
+                "index": ("INT",{"default": 0,"min": 0,"max": 999,"step": 1}),
+                "insert_string": ("STRING",{"default": "this is insert string"})
+            },
+        }
     
+    RETURN_TYPES= ("STRING",)
+    RETURN_NAMES = ("STRING",)
+    FUNCTION = "string_insert"
+    CATEGORY = "utils"
+
+    def string_insert(self,string,find_string,index,insert_string):
+        string_list = string.split(find_string)
+        string_list.insert(index,insert_string)
+        result = find_string.join(string_list)
+        return {"ui": {"text": result}, "result": (result,), }
+
 NODE_CLASS_MAPPINGS  = {
     "Psd2Png":Psd2PngNode,
+    "StringInsert":StringInsertNode,
     }
 NODE_DISPLAY_NAME_MAPPINGS  = {
     "Psd2Png":"Psd2Png",
+    "StringInsert":"StringInsert",
     }
 
